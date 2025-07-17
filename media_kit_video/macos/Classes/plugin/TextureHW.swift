@@ -166,8 +166,18 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
     }
 
     glBindFramebuffer(GLenum(GL_FRAMEBUFFER), textureContext!.frameBuffer)
+    NSLog("[media_kit][TextureHW] Using frameBuffer: \(textureContext!.frameBuffer)")
+    let texName = CVOpenGLTextureGetName(textureContext!.texture)
+    NSLog("[media_kit][TextureHW] CVOpenGLTexture name: \(texName)")
     defer {
       glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
+    }
+
+    // 检查 FBO 完整性
+    let fboStatus = glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER))
+    NSLog("[media_kit][TextureHW] glCheckFramebufferStatus: \(fboStatus)")
+    if fboStatus != GLenum(GL_FRAMEBUFFER_COMPLETE) {
+      NSLog("[media_kit][TextureHW] FBO is not complete!")
     }
 
     // 确保启用混合模式，正确叠加字幕 bitmap
@@ -186,7 +196,14 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       mpv_render_param(type: MPV_RENDER_PARAM_OPENGL_FBO, data: fboPtr),
       mpv_render_param(type: MPV_RENDER_PARAM_INVALID, data: nil),
     ]
-    mpv_render_context_render(renderContext, &params)
+    let mpvRenderResult = mpv_render_context_render(renderContext, &params)
+    NSLog("[media_kit][TextureHW] mpv_render_context_render result: \(mpvRenderResult)")
+
+    // 打印 glGetError
+    let glErr = glGetError()
+    if glErr != GLenum(GL_NO_ERROR) {
+      NSLog("[media_kit][TextureHW] glGetError: \(glErr)")
+    }
 
     // 新增：每20帧 dump 一次 FBO 内容为 PNG 到桌面
     TextureHW.frameCount += 1
