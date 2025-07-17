@@ -325,4 +325,102 @@ public class OpenGLHelpers {
 
     NSLog("[media_kit][OpenGLHelpers] ⚠️ OpenGL error in \(message): \(error)")
   }
+
+  static public func create2DTextureFromPixelBuffer(_ context: CGLContextObj, _ pixelBuffer: CVPixelBuffer) -> GLuint {
+    NSLog("[media_kit][OpenGLHelpers] Creating GL_TEXTURE_2D from pixel buffer...")
+    CGLSetCurrentContext(context)
+    defer {
+      OpenGLHelpers.checkError("create2DTextureFromPixelBuffer")
+      CGLSetCurrentContext(nil)
+    }
+    let width = CVPixelBufferGetWidth(pixelBuffer)
+    let height = CVPixelBufferGetHeight(pixelBuffer)
+    var texture: GLuint = 0
+    glGenTextures(1, &texture)
+    glBindTexture(GLenum(GL_TEXTURE_2D), texture)
+    glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MIN_FILTER), GL_LINEAR)
+    glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MAG_FILTER), GL_LINEAR)
+    glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_WRAP_S), GL_CLAMP_TO_EDGE)
+    glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_WRAP_T), GL_CLAMP_TO_EDGE)
+    // 绑定 IOSurface
+    #if arch(x86_64) || arch(arm64)
+    if let surface = CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue() {
+      let cglContext = unsafeBitCast(context, to: CGLContextObj.self)
+      let cglPixelFormat = CGLGetPixelFormat(cglContext)
+      // CGLTexImageIOSurface2D 绑定 IOSurface 到 GL_TEXTURE_2D
+      let kCGLTexImageIOSurface2D: @convention(c) (CGLContextObj, GLenum, GLenum, GLsizei, GLsizei, GLenum, GLenum, IOSurfaceRef, GLuint) -> Void = unsafeBitCast(dlsym(dlopen(nil, RTLD_LAZY), "CGLTexImageIOSurface2D"), to: (@convention(c) (CGLContextObj, GLenum, GLenum, GLsizei, GLsizei, GLenum, GLenum, IOSurfaceRef, GLuint) -> Void).self)
+      kCGLTexImageIOSurface2D(context, GLenum(GL_TEXTURE_2D), GL_RGBA, GLsizei(width), GLsizei(height), GLenum(GL_BGRA), GLenum(GL_UNSIGNED_INT_8_8_8_8_REV), surface, 0)
+      NSLog("[media_kit][OpenGLHelpers] CGLTexImageIOSurface2D called for GL_TEXTURE_2D")
+    } else {
+      NSLog("[media_kit][OpenGLHelpers] ⚠️ Failed to get IOSurface from pixel buffer!")
+    }
+    #endif
+    glBindTexture(GLenum(GL_TEXTURE_2D), 0)
+    NSLog("[media_kit][OpenGLHelpers] GL_TEXTURE_2D created: \(texture)")
+    return texture
+  }
+
+  static public func createFrameBuffer2D(
+    context: CGLContextObj,
+    renderBuffer: GLuint,
+    texture: GLuint,
+    size: CGSize
+  ) -> GLuint {
+    CGLSetCurrentContext(context)
+    defer {
+      OpenGLHelpers.checkError("createFrameBuffer2D")
+      CGLSetCurrentContext(nil)
+    }
+
+    NSLog("[media_kit][OpenGLHelpers] Creating FBO (2D) for size: \(size.width)x\(size.height)")
+    glBindTexture(GLenum(GL_TEXTURE_2D), texture)
+    defer {
+      glBindTexture(GLenum(GL_TEXTURE_2D), 0)
+    }
+    glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MAG_FILTER), GL_LINEAR)
+    glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MIN_FILTER), GL_LINEAR)
+    glViewport(0, 0, GLsizei(size.width), GLsizei(size.height))
+    NSLog("[media_kit][OpenGLHelpers] Set viewport: \(size.width)x\(size.height)")
+    var frameBuffer: GLuint = 0
+    glGenFramebuffers(1, &frameBuffer)
+    NSLog("[media_kit][OpenGLHelpers] Generated FBO: \(frameBuffer)")
+    glBindFramebuffer(GLenum(GL_FRAMEBUFFER), frameBuffer)
+    defer {
+      glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
+    }
+    NSLog("[media_kit][OpenGLHelpers] Binding texture to FBO: texture=\(texture), target=GL_TEXTURE_2D")
+    glFramebufferTexture2D(
+      GLenum(GL_FRAMEBUFFER),
+      GLenum(GL_COLOR_ATTACHMENT0),
+      GLenum(GL_TEXTURE_2D),
+      texture,
+      0
+    )
+    NSLog("[media_kit][OpenGLHelpers] Binding renderbuffer to FBO: renderBuffer=\(renderBuffer)")
+    glFramebufferRenderbuffer(
+      GLenum(GL_FRAMEBUFFER),
+      GLenum(GL_DEPTH_ATTACHMENT),
+      GLenum(GL_RENDERBUFFER),
+      renderBuffer
+    )
+    let fboStatus = glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER))
+    NSLog("[media_kit][OpenGLHelpers] FBO status: \(fboStatus)")
+    if fboStatus != GLenum(GL_FRAMEBUFFER_COMPLETE) {
+      NSLog("[media_kit][OpenGLHelpers] ⚠️ FBO is not complete! Status: \(fboStatus)")
+    } else {
+      NSLog("[media_kit][OpenGLHelpers] ✅ FBO is complete")
+    }
+    return frameBuffer
+  }
+
+  static public func deleteTexture2D(_ context: CGLContextObj, _ texture: GLuint) {
+    NSLog("[media_kit][OpenGLHelpers] Deleting GL_TEXTURE_2D: \(texture)")
+    CGLSetCurrentContext(context)
+    defer {
+      OpenGLHelpers.checkError("deleteTexture2D")
+      CGLSetCurrentContext(nil)
+    }
+    var tex = texture
+    glDeleteTextures(1, &tex)
+  }
 }

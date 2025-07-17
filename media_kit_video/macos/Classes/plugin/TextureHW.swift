@@ -205,7 +205,7 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
     }
 
     if TextureHW.frameCount % 20 == 0 {
-      NSLog("[media_kit][TextureHW] Got texture context: FBO=\(textureContext!.frameBuffer), texture=\(CVOpenGLTextureGetName(textureContext!.texture))")
+      NSLog("[media_kit][TextureHW] Got texture context: FBO=\(textureContext!.frameBuffer), texture=\(textureContext!.texture)")
     }
 
     CGLSetCurrentContext(context)
@@ -224,26 +224,21 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       NSLog("[media_kit][TextureHW] ===== Frame \(TextureHW.frameCount) Detailed Log =====")
       NSLog("[media_kit][TextureHW] Using frameBuffer: \(textureContext!.frameBuffer)")
       
-      let texName = CVOpenGLTextureGetName(textureContext!.texture)
-      NSLog("[media_kit][TextureHW] CVOpenGLTexture name: \(texName)")
-      
-      // 检查纹理类型
-      let textureTarget = CVOpenGLTextureGetTarget(textureContext!.texture)
-      NSLog("[media_kit][TextureHW] Texture target: \(textureTarget)")
+      let texName = textureContext!.texture
+      NSLog("[media_kit][TextureHW] GL_TEXTURE_2D name: \(texName)")
       
       // 检查纹理格式
       var internalFormat = GLint(0)
-      var format = GLint(0)
       var type = GLint(0)
       var width = GLint(0)
       var height = GLint(0)
       
-      glBindTexture(GLenum(textureTarget), texName)
-      glGetTexLevelParameteriv(GLenum(textureTarget), 0, GLenum(GL_TEXTURE_INTERNAL_FORMAT), &internalFormat)
-      glGetTexLevelParameteriv(GLenum(textureTarget), 0, GLenum(GL_TEXTURE_RED_TYPE), &type)
-      glGetTexLevelParameteriv(GLenum(textureTarget), 0, GLenum(GL_TEXTURE_WIDTH), &width)
-      glGetTexLevelParameteriv(GLenum(textureTarget), 0, GLenum(GL_TEXTURE_HEIGHT), &height)
-      glBindTexture(GLenum(textureTarget), 0)
+      glBindTexture(GLenum(GL_TEXTURE_2D), texName)
+      glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_INTERNAL_FORMAT), &internalFormat)
+      glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_RED_TYPE), &type)
+      glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_WIDTH), &width)
+      glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_HEIGHT), &height)
+      glBindTexture(GLenum(GL_TEXTURE_2D), 0)
       
       NSLog("[media_kit][TextureHW] Texture format: internal=\(internalFormat), type=\(type), size=\(width)x\(height)")
       
@@ -318,7 +313,6 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
         // 检查纹理格式
         glBindTexture(GLenum(GL_TEXTURE_2D), GLuint(textureId))
         var internalFormat = GLint(0)
-        var format = GLint(0)
         var type = GLint(0)
         glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_INTERNAL_FORMAT), &internalFormat)
         glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_RED_TYPE), &type)

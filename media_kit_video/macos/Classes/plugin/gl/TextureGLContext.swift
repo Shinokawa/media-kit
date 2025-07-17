@@ -2,7 +2,7 @@ public class TextureGLContext {
   private let context: CGLContextObj
   private let renderBuffer: GLuint
   public let frameBuffer: GLuint
-  public let texture: CVOpenGLTexture
+  public let texture: GLuint
   public let pixelBuffer: CVPixelBuffer
 
   init(
@@ -18,14 +18,9 @@ public class TextureGLContext {
     self.pixelBuffer = OpenGLHelpers.createPixelBuffer(size)
     NSLog("[media_kit][TextureGLContext] Pixel buffer created: \(self.pixelBuffer)")
 
-    NSLog("[media_kit][TextureGLContext] Creating texture from pixel buffer...")
-    self.texture = OpenGLHelpers.createTexture(
-      textureCache,
-      pixelBuffer
-    )
-    let textureName = CVOpenGLTextureGetName(self.texture)
-    let textureTarget = CVOpenGLTextureGetTarget(self.texture)
-    NSLog("[media_kit][TextureGLContext] Texture created: name=\(textureName), target=\(textureTarget)")
+    NSLog("[media_kit][TextureGLContext] Creating GL_TEXTURE_2D from pixel buffer...")
+    self.texture = OpenGLHelpers.create2DTextureFromPixelBuffer(context, pixelBuffer)
+    NSLog("[media_kit][TextureGLContext] GL_TEXTURE_2D created: \(self.texture)")
 
     NSLog("[media_kit][TextureGLContext] Creating render buffer...")
     self.renderBuffer = OpenGLHelpers.createRenderBuffer(
@@ -35,7 +30,7 @@ public class TextureGLContext {
     NSLog("[media_kit][TextureGLContext] Render buffer created: \(self.renderBuffer)")
 
     NSLog("[media_kit][TextureGLContext] Creating frame buffer...")
-    self.frameBuffer = OpenGLHelpers.createFrameBuffer(
+    self.frameBuffer = OpenGLHelpers.createFrameBuffer2D(
       context: context,
       renderBuffer: renderBuffer,
       texture: texture,
@@ -47,9 +42,9 @@ public class TextureGLContext {
   }
 
   deinit {
-    NSLog("[media_kit][TextureGLContext] Destroying TextureGLContext: FBO=\(frameBuffer), texture=\(CVOpenGLTextureGetName(texture)), renderBuffer=\(renderBuffer)")
+    NSLog("[media_kit][TextureGLContext] Destroying TextureGLContext: FBO=\(frameBuffer), texture=\(texture), renderBuffer=\(renderBuffer)")
     OpenGLHelpers.deletePixeBuffer(context, pixelBuffer)
-    OpenGLHelpers.deleteTexture(context, texture)
+    OpenGLHelpers.deleteTexture2D(context, texture)
     OpenGLHelpers.deleteRenderBuffer(context, renderBuffer)
     OpenGLHelpers.deleteFrameBuffer(context, frameBuffer)
   }
