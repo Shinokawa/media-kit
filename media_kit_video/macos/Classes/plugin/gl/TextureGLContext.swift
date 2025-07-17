@@ -10,29 +10,44 @@ public class TextureGLContext {
     textureCache: CVOpenGLTextureCache,
     size: CGSize
   ) {
+    NSLog("[media_kit][TextureGLContext] Creating TextureGLContext for size: \(size.width)x\(size.height)")
+    
     self.context = context
 
+    NSLog("[media_kit][TextureGLContext] Creating pixel buffer...")
     self.pixelBuffer = OpenGLHelpers.createPixelBuffer(size)
+    NSLog("[media_kit][TextureGLContext] Pixel buffer created: \(self.pixelBuffer)")
 
+    NSLog("[media_kit][TextureGLContext] Creating texture from pixel buffer...")
     self.texture = OpenGLHelpers.createTexture(
       textureCache,
       pixelBuffer
     )
+    let textureName = CVOpenGLTextureGetName(self.texture)
+    let textureTarget = CVOpenGLTextureGetTarget(self.texture)
+    NSLog("[media_kit][TextureGLContext] Texture created: name=\(textureName), target=\(textureTarget)")
 
+    NSLog("[media_kit][TextureGLContext] Creating render buffer...")
     self.renderBuffer = OpenGLHelpers.createRenderBuffer(
       context,
       size
     )
+    NSLog("[media_kit][TextureGLContext] Render buffer created: \(self.renderBuffer)")
 
+    NSLog("[media_kit][TextureGLContext] Creating frame buffer...")
     self.frameBuffer = OpenGLHelpers.createFrameBuffer(
       context: context,
       renderBuffer: renderBuffer,
       texture: texture,
       size: size
     )
+    NSLog("[media_kit][TextureGLContext] Frame buffer created: \(self.frameBuffer)")
+    
+    NSLog("[media_kit][TextureGLContext] TextureGLContext creation completed")
   }
 
   deinit {
+    NSLog("[media_kit][TextureGLContext] Destroying TextureGLContext: FBO=\(frameBuffer), texture=\(CVOpenGLTextureGetName(texture)), renderBuffer=\(renderBuffer)")
     OpenGLHelpers.deletePixeBuffer(context, pixelBuffer)
     OpenGLHelpers.deleteTexture(context, texture)
     OpenGLHelpers.deleteRenderBuffer(context, renderBuffer)
