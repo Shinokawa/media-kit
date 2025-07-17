@@ -223,7 +223,9 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       let provider = CGDataProvider(data: NSData(bytes: &pixels, length: pixels.count * MemoryLayout<UInt8>.size))
       if let cgImage = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4, space: colorSpace, bitmapInfo: bitmapInfo, provider: provider!, decode: nil, shouldInterpolate: false, intent: .defaultIntent) {
         let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-        let dest = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop/fbo_dump_\(TextureHW.frameCount).png")
+        // 保存到临时目录
+        let tempDir = FileManager.default.temporaryDirectory
+        let dest = tempDir.appendingPathComponent("fbo_dump_\(TextureHW.frameCount).png")
         if let tiff = nsImage.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff), let png = bitmap.representation(using: .png, properties: [:]) {
           try? png.write(to: dest)
           NSLog("[media_kit][TextureHW] FBO dump saved to \(dest.path)")
