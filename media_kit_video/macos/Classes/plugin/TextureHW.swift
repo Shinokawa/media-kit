@@ -167,6 +167,10 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
     }
 
+    // 确保启用混合模式，正确叠加字幕 bitmap
+    glEnable(GLenum(GL_BLEND))
+    glBlendFunc(GLenum(GL_SRC_ALPHA), GLenum(GL_ONE_MINUS_SRC_ALPHA))
+
     var fbo = mpv_opengl_fbo(
       fbo: Int32(textureContext!.frameBuffer),
       w: Int32(size.width),
