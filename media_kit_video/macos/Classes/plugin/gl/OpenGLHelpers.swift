@@ -164,7 +164,6 @@ public class OpenGLHelpers {
 
     // 检查纹理格式
     var internalFormat = GLint(0)
-    var format = GLint(0)
     var type = GLint(0)
     var width = GLint(0)
     var height = GLint(0)
@@ -345,11 +344,11 @@ public class OpenGLHelpers {
     // 绑定 IOSurface
     #if arch(x86_64) || arch(arm64)
     if let surface = CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue() {
-      let cglContext = unsafeBitCast(context, to: CGLContextObj.self)
+      let cglContext = context
       let cglPixelFormat = CGLGetPixelFormat(cglContext)
       // CGLTexImageIOSurface2D 绑定 IOSurface 到 GL_TEXTURE_2D
       let kCGLTexImageIOSurface2D: @convention(c) (CGLContextObj, GLenum, GLenum, GLsizei, GLsizei, GLenum, GLenum, IOSurfaceRef, GLuint) -> Void = unsafeBitCast(dlsym(dlopen(nil, RTLD_LAZY), "CGLTexImageIOSurface2D"), to: (@convention(c) (CGLContextObj, GLenum, GLenum, GLsizei, GLsizei, GLenum, GLenum, IOSurfaceRef, GLuint) -> Void).self)
-      kCGLTexImageIOSurface2D(context, GLenum(GL_TEXTURE_2D), GL_RGBA, GLsizei(width), GLsizei(height), GLenum(GL_BGRA), GLenum(GL_UNSIGNED_INT_8_8_8_8_REV), surface, 0)
+      kCGLTexImageIOSurface2D(context, GLenum(GL_TEXTURE_2D), GLenum(GL_RGBA), GLsizei(width), GLsizei(height), GLenum(GL_BGRA), GLenum(GL_UNSIGNED_INT_8_8_8_8_REV), surface, 0)
       NSLog("[media_kit][OpenGLHelpers] CGLTexImageIOSurface2D called for GL_TEXTURE_2D")
     } else {
       NSLog("[media_kit][OpenGLHelpers] ⚠️ Failed to get IOSurface from pixel buffer!")
