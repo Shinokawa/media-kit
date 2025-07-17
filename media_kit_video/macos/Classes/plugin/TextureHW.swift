@@ -5,8 +5,8 @@ import OpenGL.GL3
 public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
   public typealias UpdateCallback = () -> Void
 
-  // 新增：静态变量，记录 dump 次数
-  static var dumpCount = 0
+  // 新增：静态变量，记录总帧数
+  static var frameCount = 0
 
   private let handle: OpaquePointer
   private let updateCallback: UpdateCallback
@@ -188,9 +188,32 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
     ]
     mpv_render_context_render(renderContext, &params)
 
-    // 新增：只 dump 前 20 帧 FBO 内容为 PNG 到桌面
-    if TextureHW.dumpCount < 20 {
-      TextureHW.dumpCount += 1
+    // 新增：每20帧 dump 一次 FBO 内容为 PNG 到桌面
+    TextureHW.frameCount += 1
+    if TextureHW.frameCount % 20 == 0 {
+      // 检查 FBO 绑定的纹理格式
+      var attachment = GLint(0)
+      glGetFramebufferAttachmentParameteriv(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE), &attachment)
+      NSLog("[media_kit][TextureHW] FBO attachment type: \(attachment)")
+      
+      if attachment == GL_FRAMEBUFFER_DEFAULT {
+        NSLog("[media_kit][TextureHW] Using default framebuffer")
+      } else if attachment == GL_TEXTURE {
+        var textureId = GLint(0)
+        glGetFramebufferAttachmentParameteriv(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME), &textureId)
+        NSLog("[media_kit][TextureHW] FBO bound to texture: \(textureId)")
+        
+        // 检查纹理格式
+        glBindTexture(GLenum(GL_TEXTURE_2D), GLuint(textureId))
+        var internalFormat = GLint(0)
+        var format = GLint(0)
+        var type = GLint(0)
+        glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_INTERNAL_FORMAT), &internalFormat)
+        glGetTexLevelParameteriv(GLenum(GL_TEXTURE_2D), 0, GLenum(GL_TEXTURE_RED_TYPE), &type)
+        NSLog("[media_kit][TextureHW] Texture internal format: \(internalFormat), type: \(type)")
+        glBindTexture(GLenum(GL_TEXTURE_2D), 0)
+      }
+      
       let width = Int(size.width)
       let height = Int(size.height)
       var pixels = [UInt8](repeating: 0, count: width * height * 4)
@@ -200,10 +223,10 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       let provider = CGDataProvider(data: NSData(bytes: &pixels, length: pixels.count * MemoryLayout<UInt8>.size))
       if let cgImage = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4, space: colorSpace, bitmapInfo: bitmapInfo, provider: provider!, decode: nil, shouldInterpolate: false, intent: .defaultIntent) {
         let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-        let dest = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop/fbo_dump_\(TextureHW.dumpCount).png")
+        let dest = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop/fbo_dump_\(TextureHW.frameCount).png")
         if let tiff = nsImage.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff), let png = bitmap.representation(using: .png, properties: [:]) {
           try? png.write(to: dest)
-          NSLog("FBO dump saved to \(dest.path)")
+          NSLog("[media_kit][TextureHW] FBO dump saved to \(dest.path)")
         }
       }
     }
