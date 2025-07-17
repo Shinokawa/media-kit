@@ -151,10 +151,8 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
   }
 
   public func render(_ size: CGSize) {
-    NSLog("[media_kit][TextureHW] render called, size: \(size.width)x\(size.height)")
     let textureContext = textureContexts.nextAvailable()
     if textureContext == nil {
-      NSLog("[media_kit][TextureHW] textureContext is nil, skip render")
       return
     }
 
@@ -165,10 +163,8 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
     }
 
     glBindFramebuffer(GLenum(GL_FRAMEBUFFER), textureContext!.frameBuffer)
-    NSLog("[media_kit][TextureHW] glBindFramebuffer: \(textureContext!.frameBuffer)")
     defer {
       glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
-      NSLog("[media_kit][TextureHW] glBindFramebuffer: 0 (unbind)")
     }
 
     var fbo = mpv_opengl_fbo(
@@ -183,15 +179,11 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       mpv_render_param(type: MPV_RENDER_PARAM_OPENGL_FBO, data: fboPtr),
       mpv_render_param(type: MPV_RENDER_PARAM_INVALID, data: nil),
     ]
-    NSLog("[media_kit][TextureHW] call mpv_render_context_render ...")
-    let renderResult = mpv_render_context_render(renderContext, &params)
-    NSLog("[media_kit][TextureHW] mpv_render_context_render result: \(renderResult)")
+    mpv_render_context_render(renderContext, &params)
 
     glFlush()
-    NSLog("[media_kit][TextureHW] glFlush done")
 
     textureContexts.pushAsReady(textureContext!)
-    NSLog("[media_kit][TextureHW] pushAsReady done")
   }
 
   static private func getProcAddress(

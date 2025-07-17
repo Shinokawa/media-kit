@@ -39,6 +39,19 @@ class InitializerNativeCallable {
     Map<String, String> options = const {},
   }) async {
     final ctx = mpv.mpv_create();
+    // 强制设置关键 option，确保字幕渲染和软解。
+    final forcedOptions = {
+      'osd-level': '3',
+      'sub-ass': 'yes',
+      'hwdec': 'no',
+    };
+    for (final entry in forcedOptions.entries) {
+      final name = entry.key.toNativeUtf8();
+      final value = entry.value.toNativeUtf8();
+      mpv.mpv_set_option_string(ctx, name.cast(), value.cast());
+      calloc.free(name);
+      calloc.free(value);
+    }
     for (final entry in options.entries) {
       final name = entry.key.toNativeUtf8();
       final value = entry.value.toNativeUtf8();
