@@ -5,6 +5,9 @@ import OpenGL.GL3
 public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
   public typealias UpdateCallback = () -> Void
 
+  // 新增：静态变量，记录 dump 次数
+  static var dumpCount = 0
+
   private let handle: OpaquePointer
   private let updateCallback: UpdateCallback
   private let pixelFormat: CGLPixelFormatObj
@@ -184,6 +187,26 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       mpv_render_param(type: MPV_RENDER_PARAM_INVALID, data: nil),
     ]
     mpv_render_context_render(renderContext, &params)
+
+    // 新增：只 dump 前 20 帧 FBO 内容为 PNG 到桌面
+    if TextureHW.dumpCount < 20 {
+      TextureHW.dumpCount += 1
+      let width = Int(size.width)
+      let height = Int(size.height)
+      var pixels = [UInt8](repeating: 0, count: width * height * 4)
+      glReadPixels(0, 0, GLsizei(width), GLsizei(height), GLenum(GL_RGBA), GLenum(GL_UNSIGNED_BYTE), &pixels)
+      let colorSpace = CGColorSpaceCreateDeviceRGB()
+      let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+      let provider = CGDataProvider(data: NSData(bytes: &pixels, length: pixels.count * MemoryLayout<UInt8>.size))
+      if let cgImage = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4, space: colorSpace, bitmapInfo: bitmapInfo, provider: provider!, decode: nil, shouldInterpolate: false, intent: .defaultIntent) {
+        let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
+        let dest = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop/fbo_dump_\(TextureHW.dumpCount).png")
+        if let tiff = nsImage.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff), let png = bitmap.representation(using: .png, properties: [:]) {
+          try? png.write(to: dest)
+          NSLog("FBO dump saved to \(dest.path)")
+        }
+      }
+    }
 
     glFlush()
 
