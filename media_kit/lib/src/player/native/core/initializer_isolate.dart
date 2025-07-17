@@ -160,6 +160,18 @@ class InitializerIsolate {
     }
 
     mpv.mpv_initialize(handle);
+    // 初始化后立即 get property 并打印，确认实际值
+    for (final key in ['hwdec', 'osd-level', 'sub-ass']) {
+      final name = key.toNativeUtf8();
+      final value = mpv.mpv_get_property_string(handle, name.cast());
+      if (value != nullptr) {
+        print('[media_kit][native] after init: $key = ${value.cast<Utf8>().toDartString()}');
+        mpv.mpv_free(value.cast());
+      } else {
+        print('[media_kit][native] after init: $key = <null>');
+      }
+      calloc.free(name);
+    }
     port.send(handle.address);
 
     while (!disposed) {

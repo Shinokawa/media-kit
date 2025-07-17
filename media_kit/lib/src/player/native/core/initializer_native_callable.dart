@@ -60,6 +60,18 @@ class InitializerNativeCallable {
       calloc.free(value);
     }
     mpv.mpv_initialize(ctx);
+    // 初始化后立即 get property 并打印，确认实际值
+    for (final key in ['hwdec', 'osd-level', 'sub-ass']) {
+      final name = key.toNativeUtf8();
+      final value = mpv.mpv_get_property_string(ctx, name.cast());
+      if (value != nullptr) {
+        print('[media_kit][native] after init: $key = ${value.cast<Utf8>().toDartString()}');
+        mpv.mpv_free(value.cast());
+      } else {
+        print('[media_kit][native] after init: $key = <null>');
+      }
+      calloc.free(name);
+    }
     final nativeCallable = WakeUpNativeCallable.listener(_callback);
     final nativeFunction = nativeCallable.nativeFunction;
     _locks[ctx.address] = Lock();
